@@ -92,20 +92,17 @@ function dibujarGrafo(grafo, visitados = [], aristasMST = []) {
     const gruposAristas = {};
     grafo.aristas.forEach(arista => {
         const nodos = [arista.origen, arista.destino].sort();
-        const clave = nodos.join("|"); // Usar pipe para evitar conflicto con nombres con guion
+        const clave = nodos.join("-");
         if (!gruposAristas[clave]) gruposAristas[clave] = [];
         gruposAristas[clave].push(arista);
     });
 
-    const centroX = 400; // Mismo que en Grafo
-    const centroY = 200;
-
     // Dibujar aristas
     Object.keys(gruposAristas).forEach(clave => {
         const aristas = gruposAristas[clave];
-        const partes = clave.split("|");
+        const partes = clave.split("-");
         const uNombre = partes[0];
-        const vNombre = partes[1] || partes[0];
+        const vNombre = partes[1] || partes[0]; // Manejar casos raros de split
 
         const idxU = grafo.indiceNodos[uNombre];
         const idxV = grafo.indiceNodos[vNombre];
@@ -115,7 +112,12 @@ function dibujarGrafo(grafo, visitados = [], aristasMST = []) {
         const p1 = grafo.posiciones[idxU];
         const p2 = grafo.posiciones[idxV];
 
+        // Calcular dirección hacia afuera del centro para los bucles
+        const centroCanvasX = 400;
+        const centroCanvasY = 200;
+
         aristas.forEach((arista, index) => {
+            // Verificar si esta arista está en el MST
             const esMST = aristasMST.some(a => 
                 (a.desde === arista.origen && a.hasta === arista.destino && Math.abs(a.peso - arista.peso) < 0.01) ||
                 (a.desde === arista.destino && a.hasta === arista.origen && Math.abs(a.peso - arista.peso) < 0.01)
@@ -124,56 +126,62 @@ function dibujarGrafo(grafo, visitados = [], aristasMST = []) {
             ctx.beginPath();
             ctx.lineWidth = esMST ? 4 : 2;
             ctx.strokeStyle = esMST ? "#27ae60" : "#d1d1d1";
+
             ctx.font = "bold 12px Arial";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
 
             if (uNombre === vNombre) {
-                // CASO: Bucle (Self-loop) RADIAL
-                // Calculamos dirección desde el centro hacia el nodo
-                const dx = p1.x - centroX;
-                const dy = p1.y - centroY;
-                const angulo = Math.atan2(dy, dx);
+                // CASO: Bucle (Self-loop)
+                // Calcular ángulo desde el centro para apuntar el bucle hacia afuera
+                const angulo = Math.atan2(p1.y - centroCanvasY, p1.x - centroCanvasX);
+                const loopRadio = 20 + (index * 15);
                 
-                // Distancia del centro del bucle al nodo
-                const distLoop = 30 + (index * 15);
-                const loopCenterX = p1.x + Math.cos(angulo) * distLoop;
-                const loopCenterY = p1.y + Math.sin(angulo) * distLoop;
-                const loopRadio = 15 + (index * 5);
+                // Posición del centro del bucle
+                const distAlCentroBucle = radioNodo + loopRadio;
+                const bX = p1.x + Math.cos(angulo) * distAlCentroBucle;
+                const bY = p1.y + Math.sin(angulo) * distAlCentroBucle;
 
-                ctx.arc(loopCenterX, loopCenterY, loopRadio, 0, 2 * Math.PI);
+                ctx.arc(bX, bY, loopRadio, 0, 2 * Math.PI);
                 ctx.stroke();
                 
-                // Peso al final del bucle
-                const pesoX = p1.x + Math.cos(angulo) * (distLoop + loopRadio + 10);
-                const pesoY = p1.y + Math.sin(angulo) * (distLoop + loopRadio + 10);
-                
+                // Peso del bucle (un poco más allá del círculo)
+                const pesoDist = distAlCentroBucle + loopRadio + 5;
+                const pesoX = p1.x + Math.cos(angulo) * pesoDist;
+                const pesoY = p1.y + Math.sin(angulo) * pesoDist;
+
                 ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
                 ctx.fillRect(pesoX - 12, pesoY - 8, 24, 16);
                 ctx.fillStyle = "#e67e22";
                 ctx.fillText(arista.peso, pesoX, pesoY);
             } else {
-                // CASO: Arista normal o múltiple (Bezier)
-                const midX = (p1.x + p2.x) / 2;
-                const midY = (p1.y + p2.y) / 2;
-
+                // CASO: Arista normal o múltiple
                 if (aristas.length === 1) {
+                    // Una sola arista: Línea recta
                     ctx.moveTo(p1.x, p1.y);
                     ctx.lineTo(p2.x, p2.y);
                     ctx.stroke();
 
+                    const midX = (p1.x + p2.x) / 2;
+                    const midY = (p1.y + p2.y) / 2;
+                    
                     ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
                     ctx.fillRect(midX - 12, midY - 8, 24, 16);
                     ctx.fillStyle = "#333";
                     ctx.fillText(arista.peso, midX, midY);
                 } else {
+                    // Múltiples aristas: Curvas de Bézier
+                    const midX = (p1.x + p2.x) / 2;
+                    const midY = (p1.y + p2.y) / 2;
+                    
                     const dx = p2.x - p1.x;
                     const dy = p2.y - p1.y;
                     const len = Math.sqrt(dx * dx + dy * dy);
                     const nx = -dy / len;
                     const ny = dx / len;
                     
-                    const offset = (index - (aristas.length - 1) / 2) * 40;
+                    // Desplazamiento simétrico: -50, 0, 50 o -25, 25, etc.
+                    const offset = (index - (aristas.length - 1) / 2) * 45;
                     const cpX = midX + nx * offset;
                     const cpY = midY + ny * offset;
 
