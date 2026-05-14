@@ -100,34 +100,51 @@ function dibujarGrafo(grafo, visitados = [], aristasMST = []) {
     // Dibujar aristas
     Object.keys(gruposAristas).forEach(clave => {
         const aristas = gruposAristas[clave];
-        const [uNombre, vNombre] = clave.split("-");
+        const partes = clave.split("-");
+        const uNombre = partes[0];
+        const vNombre = partes[1] || partes[0]; // Manejar casos raros de split
+
         const idxU = grafo.indiceNodos[uNombre];
         const idxV = grafo.indiceNodos[vNombre];
+        
+        if (idxU === undefined || idxV === undefined) return;
+
         const p1 = grafo.posiciones[idxU];
         const p2 = grafo.posiciones[idxV];
 
         aristas.forEach((arista, index) => {
             // Verificar si esta arista está en el MST
             const esMST = aristasMST.some(a => 
-                (a.desde === arista.origen && a.hasta === arista.destino && a.peso === arista.peso) ||
-                (a.desde === arista.destino && a.hasta === arista.origen && a.peso === arista.peso)
+                (a.desde === arista.origen && a.hasta === arista.destino && Math.abs(a.peso - arista.peso) < 0.01) ||
+                (a.desde === arista.destino && a.hasta === arista.origen && Math.abs(a.peso - arista.peso) < 0.01)
             );
 
             ctx.beginPath();
-            ctx.lineWidth = esMST ? 4 : 1;
-            ctx.strokeStyle = esMST ? "#27ae60" : "#ccc";
+            ctx.lineWidth = esMST ? 4 : 2;
+            ctx.strokeStyle = esMST ? "#27ae60" : "#d1d1d1";
+
+            ctx.font = "bold 12px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
 
             if (uNombre === vNombre) {
                 // CASO: Bucle (Self-loop)
+                // Dibujar un círculo que sale y entra al mismo nodo
                 const x = p1.x;
                 const y = p1.y - radioNodo;
-                const loopRadio = 15 + (index * 10);
+                const loopRadio = 20 + (index * 15);
+                
                 ctx.arc(x, y - loopRadio, loopRadio, 0, 2 * Math.PI);
                 ctx.stroke();
                 
-                // Peso del bucle
-                ctx.fillStyle = "#333";
-                ctx.fillText(arista.peso, x, y - (loopRadio * 2) - 5);
+                // Fondo para el peso para que sea legible
+                const pesoX = x;
+                const pesoY = y - (loopRadio * 2);
+                ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+                ctx.fillRect(pesoX - 10, pesoY - 7, 20, 14);
+                
+                ctx.fillStyle = "#e67e22"; // Color naranja para pesos de bucles
+                ctx.fillText(arista.peso, pesoX, pesoY);
             } else {
                 // CASO: Arista normal o múltiple
                 if (aristas.length === 1) {
@@ -139,22 +156,24 @@ function dibujarGrafo(grafo, visitados = [], aristasMST = []) {
                     // Peso en el centro
                     const midX = (p1.x + p2.x) / 2;
                     const midY = (p1.y + p2.y) / 2;
+                    
+                    ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+                    ctx.fillRect(midX - 10, midY - 7, 20, 14);
                     ctx.fillStyle = "#333";
-                    ctx.fillText(arista.peso, midX, midY - 5);
+                    ctx.fillText(arista.peso, midX, midY);
                 } else {
                     // Múltiples aristas: Curvas de Bézier
                     const midX = (p1.x + p2.x) / 2;
                     const midY = (p1.y + p2.y) / 2;
                     
-                    // Calcular vector normal para desplazar el punto de control
                     const dx = p2.x - p1.x;
                     const dy = p2.y - p1.y;
                     const len = Math.sqrt(dx * dx + dy * dy);
                     const nx = -dy / len;
                     const ny = dx / len;
                     
-                    // Desplazamiento variable para cada arista
-                    const offset = (index - (aristas.length - 1) / 2) * 30;
+                    // Desplazamiento más pronunciado (50px)
+                    const offset = (index - (aristas.length - 1) / 2) * 50;
                     const cpX = midX + nx * offset;
                     const cpY = midY + ny * offset;
 
@@ -162,7 +181,9 @@ function dibujarGrafo(grafo, visitados = [], aristasMST = []) {
                     ctx.quadraticCurveTo(cpX, cpY, p2.x, p2.y);
                     ctx.stroke();
 
-                    // Peso en el punto de control (ajustado)
+                    // Peso en el punto de control
+                    ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+                    ctx.fillRect(cpX - 10, cpY - 7, 20, 14);
                     ctx.fillStyle = "#333";
                     ctx.fillText(arista.peso, cpX, cpY);
                 }
