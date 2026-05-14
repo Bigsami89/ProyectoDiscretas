@@ -43,8 +43,10 @@ class Grafo {
 
     /**
      * Calcula la matriz de adyacencia.
-     * Es una matriz cuadrada n x n donde A[i][j] es el peso de la arista entre i y j.
-     * Se asume grafo no dirigido para este ejercicio.
+     * @returns {number[][]} Matriz cuadrada n x n.
+     * Una matriz de adyacencia registra las conexiones entre pares de nodos.
+     * Si existe una arista entre el nodo i y el nodo j con peso w, entonces A[i][j] = w.
+     * Como tratamos con grafos no dirigidos, la matriz es simétrica (A[i][j] = A[j][i]).
      */
     obtenerMatrizAdyacencia() {
         const n = this.nodos.length;
@@ -53,8 +55,9 @@ class Grafo {
         this.aristas.forEach(arista => {
             const i = this.indiceNodos[arista.origen];
             const j = this.indiceNodos[arista.destino];
+            // Asignar el peso en ambas direcciones para representar no-direccionalidad
             matriz[i][j] = arista.peso;
-            matriz[j][i] = arista.peso; // Simétrico por ser no dirigido
+            matriz[j][i] = arista.peso; 
         });
 
         return matriz;
@@ -62,7 +65,9 @@ class Grafo {
 
     /**
      * Calcula la matriz de incidencia.
-     * Es una matriz n x m (nodos x aristas).
+     * @returns {number[][]} Matriz de n x m (Nodos x Aristas).
+     * Una matriz de incidencia muestra la relación entre los nodos (filas) y las aristas (columnas).
+     * Si la arista k conecta los nodos i y j, entonces M[i][k] = 1 y M[j][k] = 1.
      */
     obtenerMatrizIncidencia() {
         const n = this.nodos.length;
@@ -72,6 +77,7 @@ class Grafo {
         this.aristas.forEach((arista, col) => {
             const i = this.indiceNodos[arista.origen];
             const j = this.indiceNodos[arista.destino];
+            // Marcamos con 1 los dos nodos que "tocan" esta arista
             matriz[i][col] = 1;
             matriz[j][col] = 1;
         });

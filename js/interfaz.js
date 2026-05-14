@@ -152,33 +152,87 @@ function dibujarGrafo(grafo, visitados = [], aristasMST = []) {
 }
 
 /**
- * Procesa la entrada del usuario y crea el objeto Grafo.
+ * Procesa la entrada del usuario, valida los datos y crea el objeto Grafo.
+ * @returns {Grafo|null} El objeto grafo o null si hay errores críticos.
  */
 function leerEntradaUsuario() {
-    const textoNodos = document.getElementById("input-nodos").value;
-    const textoAristas = document.getElementById("input-aristas").value;
+    const inputNodos = document.getElementById("input-nodos");
+    const inputAristas = document.getElementById("input-aristas");
+    const errorDiv = document.getElementById("mensaje-error");
+    
+    // Limpiar errores previos
+    errorDiv.style.display = "none";
+    errorDiv.innerHTML = "";
+    let errores = [];
 
-    const nombresNodos = textoNodos.split(",").map(n => n.trim()).filter(n => n !== "");
+    const nombresNodos = inputNodos.value.split(",").map(n => n.trim()).filter(n => n !== "");
+    
+    // Validación 1: Debe haber nodos
     if (nombresNodos.length === 0) {
-        alert("Por favor, ingresa al menos un nodo.");
+        errores.push("Error: Debes ingresar al menos un nombre de nodo.");
+    }
+
+    // Si hay errores de nodos, no continuamos
+    if (errores.length > 0) {
+        mostrarErrores(errores);
         return null;
     }
 
     const grafo = new Grafo(nombresNodos);
 
     // Procesar aristas: formato A-B:5
+    const textoAristas = inputAristas.value;
     const partesAristas = textoAristas.split(",").map(s => s.trim()).filter(s => s !== "");
+    
     partesAristas.forEach(p => {
-        try {
-            const [nodosPart, pesoPart] = p.split(":");
-            const [orig, dest] = nodosPart.split("-");
-            if (orig && dest && pesoPart) {
-                grafo.agregarArista(orig.trim(), dest.trim(), pesoPart.trim());
-            }
-        } catch (e) {
-            console.error("Error al procesar arista:", p);
+        // Validar formato básico usando Regex para mayor precisión
+        // Formato esperado: NodoOrigen-NodoDestino:Peso (Peso puede ser decimal)
+        const regex = /^([^-]+)-([^:]+):(\d+(\.\d+)?)$/;
+        const match = p.match(regex);
+
+        if (!match) {
+            errores.push(`Error de formato en arista "${p}": Debe ser Origen-Destino:Peso (ej: A-B:5).`);
+            return;
+        }
+
+        const [_, orig, dest, peso] = match;
+        const nombreOrig = orig.trim();
+        const nombreDest = dest.trim();
+
+        // Validación 2: Los nodos deben existir en la lista de nodos
+        if (grafo.indiceNodos[nombreOrig] === undefined) {
+            errores.push(`Error en arista "${p}": El nodo "${nombreOrig}" no está en la lista de nodos.`);
+        } else if (grafo.indiceNodos[nombreDest] === undefined) {
+            errores.push(`Error en arista "${p}": El nodo "${nombreDest}" no está en la lista de nodos.`);
+        } else {
+            // Si todo está bien, agregar la arista
+            grafo.agregarArista(nombreOrig, nombreDest, peso);
         }
     });
 
+    // Si hubo errores en las aristas, los mostramos
+    if (errores.length > 0) {
+        mostrarErrores(errores);
+        // Nota: Permitimos continuar si algunas aristas son válidas, 
+        // pero podrías decidir retornar null aquí si quieres ser estricto.
+    }
+
     return grafo;
+}
+
+/**
+ * Muestra una lista de errores en la interfaz.
+ * @param {string[]} errores Lista de mensajes de error.
+ */
+function mostrarErrores(errores) {
+    const errorDiv = document.getElementById("mensaje-error");
+    errorDiv.style.display = "block";
+    
+    const ul = document.createElement("ul");
+    errores.forEach(err => {
+        const li = document.createElement("li");
+        li.textContent = err;
+        ul.appendChild(li);
+    });
+    errorDiv.appendChild(ul);
 }
