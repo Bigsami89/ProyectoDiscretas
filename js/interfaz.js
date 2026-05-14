@@ -78,59 +78,108 @@ function actualizarDatosPrimUI(mst) {
 }
 
 /**
- * Dibuja el grafo completo en el canvas.
+ * Dibuja el grafo completo en el canvas, manejando bucles y aristas múltiples.
  */
 function dibujarGrafo(grafo, visitados = [], aristasMST = []) {
     const canvas = document.getElementById("canvas-grafo");
     const ctx = canvas.getContext("2d");
+    const radioNodo = 20;
     
     // Limpiar canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Dibujar aristas originales
+    // Agrupar aristas por par de nodos para detectar múltiples caminos
+    const gruposAristas = {};
     grafo.aristas.forEach(arista => {
-        const i = grafo.indiceNodos[arista.origen];
-        const j = grafo.indiceNodos[arista.destino];
-        const p1 = grafo.posiciones[i];
-        const p2 = grafo.posiciones[j];
-
-        // Verificar si esta arista está en el MST actual
-        const esMST = aristasMST.some(a => 
-            (a.desde === arista.origen && a.hasta === arista.destino) ||
-            (a.desde === arista.destino && a.hasta === arista.origen)
-        );
-
-        ctx.beginPath();
-        ctx.moveTo(p1.x, p1.y);
-        ctx.lineTo(p2.x, p2.y);
-        
-        if (esMST) {
-            ctx.strokeStyle = "#27ae60"; // Verde para MST
-            ctx.lineWidth = 4;
-        } else {
-            ctx.strokeStyle = "#ccc"; // Gris para aristas normales
-            ctx.lineWidth = 1;
-        }
-        ctx.stroke();
-
-        // Dibujar peso de la arista
-        const midX = (p1.x + p2.x) / 2;
-        const midY = (p1.y + p2.y) / 2;
-        ctx.fillStyle = "#333";
-        ctx.font = "12px Arial";
-        ctx.fillText(arista.peso, midX, midY - 5);
+        const nodos = [arista.origen, arista.destino].sort();
+        const clave = nodos.join("-");
+        if (!gruposAristas[clave]) gruposAristas[clave] = [];
+        gruposAristas[clave].push(arista);
     });
 
-    // Dibujar nodos
+    // Dibujar aristas
+    Object.keys(gruposAristas).forEach(clave => {
+        const aristas = gruposAristas[clave];
+        const [uNombre, vNombre] = clave.split("-");
+        const idxU = grafo.indiceNodos[uNombre];
+        const idxV = grafo.indiceNodos[vNombre];
+        const p1 = grafo.posiciones[idxU];
+        const p2 = grafo.posiciones[idxV];
+
+        aristas.forEach((arista, index) => {
+            // Verificar si esta arista está en el MST
+            const esMST = aristasMST.some(a => 
+                (a.desde === arista.origen && a.hasta === arista.destino && a.peso === arista.peso) ||
+                (a.desde === arista.destino && a.hasta === arista.origen && a.peso === arista.peso)
+            );
+
+            ctx.beginPath();
+            ctx.lineWidth = esMST ? 4 : 1;
+            ctx.strokeStyle = esMST ? "#27ae60" : "#ccc";
+
+            if (uNombre === vNombre) {
+                // CASO: Bucle (Self-loop)
+                const x = p1.x;
+                const y = p1.y - radioNodo;
+                const loopRadio = 15 + (index * 10);
+                ctx.arc(x, y - loopRadio, loopRadio, 0, 2 * Math.PI);
+                ctx.stroke();
+                
+                // Peso del bucle
+                ctx.fillStyle = "#333";
+                ctx.fillText(arista.peso, x, y - (loopRadio * 2) - 5);
+            } else {
+                // CASO: Arista normal o múltiple
+                if (aristas.length === 1) {
+                    // Una sola arista: Línea recta
+                    ctx.moveTo(p1.x, p1.y);
+                    ctx.lineTo(p2.x, p2.y);
+                    ctx.stroke();
+
+                    // Peso en el centro
+                    const midX = (p1.x + p2.x) / 2;
+                    const midY = (p1.y + p2.y) / 2;
+                    ctx.fillStyle = "#333";
+                    ctx.fillText(arista.peso, midX, midY - 5);
+                } else {
+                    // Múltiples aristas: Curvas de Bézier
+                    const midX = (p1.x + p2.x) / 2;
+                    const midY = (p1.y + p2.y) / 2;
+                    
+                    // Calcular vector normal para desplazar el punto de control
+                    const dx = p2.x - p1.x;
+                    const dy = p2.y - p1.y;
+                    const len = Math.sqrt(dx * dx + dy * dy);
+                    const nx = -dy / len;
+                    const ny = dx / len;
+                    
+                    // Desplazamiento variable para cada arista
+                    const offset = (index - (aristas.length - 1) / 2) * 30;
+                    const cpX = midX + nx * offset;
+                    const cpY = midY + ny * offset;
+
+                    ctx.moveTo(p1.x, p1.y);
+                    ctx.quadraticCurveTo(cpX, cpY, p2.x, p2.y);
+                    ctx.stroke();
+
+                    // Peso en el punto de control (ajustado)
+                    ctx.fillStyle = "#333";
+                    ctx.fillText(arista.peso, cpX, cpY);
+                }
+            }
+        });
+    });
+
+    // Dibujar nodos (encima de las aristas)
     grafo.nodos.forEach((nombre, i) => {
         const p = grafo.posiciones[i];
         const estaVisitado = visitados[i];
 
         ctx.beginPath();
-        ctx.arc(p.x, p.y, 20, 0, 2 * Math.PI);
+        ctx.arc(p.x, p.y, radioNodo, 0, 2 * Math.PI);
         
         if (estaVisitado) {
-            ctx.fillStyle = "#2c3e50"; // Azul oscuro visitado
+            ctx.fillStyle = "#2c3e50";
             ctx.strokeStyle = "#27ae60";
             ctx.lineWidth = 3;
         } else {
@@ -142,7 +191,6 @@ function dibujarGrafo(grafo, visitados = [], aristasMST = []) {
         ctx.fill();
         ctx.stroke();
 
-        // Texto del nodo
         ctx.fillStyle = estaVisitado ? "#fff" : "#333";
         ctx.font = "bold 14px Arial";
         ctx.textAlign = "center";
