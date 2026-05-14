@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Gemini/Antigravity
+.gemini/

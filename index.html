@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analizador de Grafos - Algoritmo de Prim</title>
+    <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+    <header>
+        <h1>Herramienta de Análisis de Grafos</h1>
+        <p>Cálculo de matrices y Árbol de Expansión Mínima (Prim)</p>
+    </header>
+
+    <main>
+        <section id="configuracion">
+            <h2>Configuración del Grafo</h2>
+            <div class="formulario">
+                <label for="input-nodos">Nombres de nodos (separados por coma, ej: A,B,C):</label>
+                <input type="text" id="input-nodos" placeholder="A, B, C, D">
+                
+                <label for="input-aristas">Aristas y pesos (ej: A-B:5, B-C:3):</label>
+                <textarea id="input-aristas" rows="4" placeholder="A-B:5, B-C:3, A-C:10"></textarea>
+                
+                <button id="boton-procesar">Procesar Grafo</button>
+            </div>
+        </section>
+
+        <section id="resultados" style="display: none;">
+            <div class="bloque-resultado">
+                <h2>Visualización del Grafo</h2>
+                <div id="contenedor-canvas">
+                    <canvas id="canvas-grafo" width="800" height="400"></canvas>
+                </div>
+            </div>
+
+            <div class="bloque-resultado">
+                <h2>Matriz de Adyacencia</h2>
+                <div id="contenedor-adyacencia" class="tabla-contenedor"></div>
+            </div>
+
+            <div class="bloque-resultado">
+                <h2>Matriz de Incidencia</h2>
+                <div id="contenedor-incidencia" class="tabla-contenedor"></div>
+            </div>
+
+            <div class="bloque-resultado">
+                <h2>Algoritmo de Prim (MST)</h2>
+                <div id="contenedor-prim">
+                    <p id="peso-minimo">Peso total: -</p>
+                    <ul id="lista-aristas-mst"></ul>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>Proyecto sencillo de grafos - Estilo funcional</p>
+    </footer>
+
+    <!-- Scripts separados por lógica -->
+    <script src="js/grafo.js"></script>
+    <script src="js/prim.js"></script>
+    <script src="js/interfaz.js"></script>
+    <script src="js/principal.js"></script>
+</body>
+</html>
